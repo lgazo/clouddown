@@ -129,7 +129,7 @@ export class CloudDOWN extends AbstractLevel<K, V> {
 
   kv_encoding() {
     return {
-      encode: (key) => {
+      encode: (key: K | V | null) => {
         if(Buffer.isBuffer(key)) {
           return `${B64}${key.toString('base64')}`;
         } else if(typeof key === 'string') {
@@ -143,7 +143,7 @@ export class CloudDOWN extends AbstractLevel<K, V> {
           throw new Error(`Unhandled type of key ${key}`)
         }
       },
-      decode: (key) => {
+      decode: (key: K | V | null) => {
         if(Buffer.isBuffer(key)) {
           console.debug(`[kv_encoding] decode isBuffer`, {key});
           return key;
@@ -195,7 +195,7 @@ export class CloudDOWN extends AbstractLevel<K, V> {
       await this.#namespace.put(encoded_key, encoded_value, { metadata });
       console.debug(`[clouddown db] put`, { key, value, encoded_key, encoded_value });
       return void callback(undefined);
-    } catch (error) {
+    } catch (error: any) {
       return void callback(error);
     }
     // this.nextTick(callback)
@@ -233,7 +233,7 @@ export class CloudDOWN extends AbstractLevel<K, V> {
       console.debug('[clouddown db] get after decode')
 
       console.debug(`[clouddown db] get (${options.valueEncoding})`, { key, encoded_key, value, decoded_value });
-    } catch (error) {
+    } catch (error: any) {
       console.error(`[clouddown get] ERROR !!!!`, { error });
       return callback(error);
     }
@@ -257,13 +257,13 @@ export class CloudDOWN extends AbstractLevel<K, V> {
     try {
       await this.#namespace.delete(key);
       return void callback(undefined);
-    } catch (error) {
+    } catch (error: any) {
       return void callback(error);
     }
   }
 
   async _batch_via_endpoint(
-    ops: Array<AbstractBatchOperation<typeof this, K, V>>,
+    ops: Array<AbstractBatchOperation<CloudDOWN, K, V>>,
     _options: AbstractBatchOptions<K, V>,
     callback: NodeCallback<void>,
   ): Promise<void> {
@@ -311,19 +311,19 @@ export class CloudDOWN extends AbstractLevel<K, V> {
           keys: dels,
         })),
       ]);
-    } catch (error) {
+    } catch (error: any) {
       return void callback(error);
     }
   }
 
   async _batch_simulated(
-    ops: Array<AbstractBatchOperation<typeof this, K, V>>,
+    ops: Array<AbstractBatchOperation<CloudDOWN, K, V>>,
     _options: AbstractBatchOptions<K, V>,
     callback: NodeCallback<void>,
   ): Promise<void> {
 
     await Promise.all(ops.map((op) => {
-      const cb = (err, value) => new Promise((resolve, reject) => {
+      const cb: NodeCallback<void> = (err, value) => new Promise((resolve, reject) => {
         console.debug(`[batch_simulated] cb ${op.type}`, { err, value });
         if (err) {
           reject(err);
@@ -362,7 +362,7 @@ export class CloudDOWN extends AbstractLevel<K, V> {
   }
 
   async _batch(
-    ops: Array<AbstractBatchOperation<typeof this, K, V>>,
+    ops: Array<AbstractBatchOperation<CloudDOWN, K, V>>,
     _options: AbstractBatchOptions<K, V>,
     callback: NodeCallback<void>,
   ): Promise<void> {

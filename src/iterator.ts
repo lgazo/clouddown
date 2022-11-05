@@ -1,6 +1,6 @@
 /// <reference types="@cloudflare/workers-types" />
 
-import type { AbstractIteratorOptions } from 'abstract-level';
+import type { AbstractIteratorOptions, NodeCallback } from 'abstract-level';
 import { AbstractIterator } from 'abstract-level';
 
 import type { K, V } from './common';
@@ -15,11 +15,13 @@ const decode = (key: string): Buffer => Buffer.from(key.substring(B64.length), '
 export class CloudIterator extends AbstractIterator<CloudDOWN, K, V> {
   keys?: KVNamespaceListKey<any>[];
   position: number;
+  nextTick;
 
   constructor(db: CloudDOWN, options: CloudIteratorOptions) {
     super(db, options);
     // this[kInit](db[kTree], options)
     this.position = -1;
+    this.nextTick = db.nextTick;
   }
 
   async _ensure() {
@@ -33,7 +35,7 @@ export class CloudIterator extends AbstractIterator<CloudDOWN, K, V> {
     }
   }
 
-  async _next(callback) {
+  async _next(callback: NodeCallback<K>): Promise<void> {
     await this._ensure();
     //   if (!this[kIterator].valid) return this.nextTick(callback)
 
@@ -59,14 +61,14 @@ export class CloudIterator extends AbstractIterator<CloudDOWN, K, V> {
 
     if(!this.keys || this.position === -1 || this.position >= this.keys.length) {
       console.debug('[clouddown iterator] nothing next');
-      callback();
+      callback(null);
       // this.nextTick(callback, null, null, null);
       return;
     }
 
     const kv_key = this.keys[this.position];
 
-    const cb = (err, value?) => new Promise((resolve, reject) => {
+    const cb: NodeCallback<void | V> = (err, value?) => new Promise((resolve, reject) => {
       if(err) {
         reject(err);
       } else {
@@ -81,7 +83,7 @@ export class CloudIterator extends AbstractIterator<CloudDOWN, K, V> {
 
   }
 
-  _all(options, callback) {
+  _all(options: unknown, callback: NodeCallback<[K]>) {
     //   const size = this.limit - this.count
     //   const it = this[kIterator]
     //   const entries = []
